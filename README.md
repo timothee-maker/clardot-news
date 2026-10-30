@@ -1,6 +1,6 @@
 # Clardot News – brèves à partir des publications AMF / info-financiere.gouv.fr
 
-- Début : 2026-10-30 (heure de départ : 15:40h)
+- Début : 2026-10-30 (heure de départ : 15 h 40)
 
 ## 1. Choix techniques
 - **Next.js 16 (App Router) + React 19 + TypeScript.** Un seul projet pour l'interface et le back-end (routes API).
@@ -49,7 +49,7 @@ Outil utilisé : Claude Code (dans VS Code).
 
 ### Prompts clés
 1. **Cadrage / plan.** J'ai collé l'énoncé complet de l'exercice et demandé un plan par étapes avec des temps cibles (cible 4 h). Résultat : le plan en 9 étapes (préparation, exploration, ingestion, liste, sélection, brèves, vérification, déploiement, README).
-2. **Gestion des risques.** Demander d'expliquer chaque étape pour la comprendre concrètement, et ne pas faire exécuter sans avoir pris conscience du risque pris.
+2. **Gestion des risques.** Demander d'expliquer chaque étape pour la comprendre concrètement, et ne pas faire exécuter sans avoir pris conscience du risque.
 3. **Génération des brèves** (prompt système envoyé à Gemini, dans `src/lib/llm.ts`) :
    > Tu es journaliste financier. Tu rédiges une brève d'actualité en français à partir d'un document réglementé.
    > - Utilise UNIQUEMENT les informations présentes dans le document fourni. N'invente rien, n'ajoute aucun contexte extérieur.
@@ -61,7 +61,19 @@ Outil utilisé : Claude Code (dans VS Code).
 
 ### Erreur de l'IA détectée
 - **Champ d'API inventé.** Pour trier les publications par date, l'IA a écrit `order_by=date_de_publication desc`, un nom de champ deviné à partir de l'énoncé et non lu dans les données.
-- **Comment je l'ai repérée :** le message d'erreur de l'API (ODSQLError), puis lecture d'un vrai enregistrement.
+- **Comment je l'ai repérée :** grâce au message d'erreur de l'API (ODSQLError).
 
-## 6. Améliorations
+**Seconde erreur : un quota épuisé traité comme une surcharge passagère.** Le code généré par l'IA relançait les erreurs Gemini 429 et 503 avec un délai croissant. Or un 429 « quota exceeded » (et le 402 « crédits épuisés ») ne se règlent pas en attendant : la génération a tourné près de 5 minutes pour échouer à l'identique.
+
+## 6. Les idées d'amélioration et ce que je ferais avec plus de temps
+Avec plus de temps, dans l'ordre où je les ferais :
+
+1. **Déduplication.** Regrouper les articles français / anglais dès l'ingestion plutôt qu'à la sélection.
+2. **Acheter des crédits pour l'API LLM.** Gemini est parfois surchargé (503) : file d'attente avec relances, et repli sur un second modèle.
+3. **Alertes.** Notifier quand une publication dépasse un seuil de score élevé (CAC 40, offre publique).
+4. **Évaluer sur un jeu annoté.** Faire comme sur Twitter : une vérification par la communauté, avec un sondage de validation de la fiabilité de l'article.
+
 ## 7. Temps passé
+- Début : 15:40. Fin de la rédaction du code et du déploiement : environ 18:40, avec une pause d'environ 15 min.
+- **Temps réel : environ 2 h 45**
+- Répartition approximative : exploration de l'API et ingestion, 40 min ; liste filtrable, 25 min ; score de sélection, 25 min ; génération des brèves, 40 min (dont du temps perdu sur le quota Gemini épuisé) ; vérification des chiffres, 25 min ; déploiement et README, le reste.
