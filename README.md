@@ -34,6 +34,15 @@ Score par règles (`src/lib/scoring.ts`) : somme de points selon le titre, le so
 - **Limites :** poids réglés à la main sur 5 jours, sans jeu annoté ; mots-clés parfois trompeurs ; score basé sur le titre, pas sur le document.
 
 ## 4. Contrôle des chiffres
+Chaque brève est comparée au texte du PDF source (`src/lib/verify.ts`), juste après sa génération.
+
+1. On extrait tous les nombres du corps de la brève par regex
+2. On normalise les formats français
+3. On cherche chaque nombre dans le texte du document :
+   - ✅ **vérifié** : le nombre est trouvé
+   - ⚠️ **non vérifiable** : valeur proche dans le document
+   - ❌ **absent** : le nombre n'existe pas dans le document
+
 ## 5. Prompts clés et erreur de l'IA
 
 Outil utilisé : Claude Code (dans VS Code).
@@ -49,8 +58,6 @@ Outil utilisé : Claude Code (dans VS Code).
    > - Si le document ne contient pas de chiffre, n'en mets pas.
    > - Dans "figures", liste chaque chiffre cité dans le corps, tel qu'écrit dans le corps.
    > - Le titre est informatif, 12 mots maximum.
-
-   La sortie est un JSON imposé (`title`, `body`, `figures`) : la liste `figures` sert ensuite à vérifier les chiffres. Si le corps sort de la fourchette 100 à 150 mots, une seconde tentative est faite avec le décompte réel.
 
 ### Erreur de l'IA détectée
 - **Champ d'API inventé.** Pour trier les publications par date, l'IA a écrit `order_by=date_de_publication desc`, un nom de champ deviné à partir de l'énoncé et non lu dans les données.

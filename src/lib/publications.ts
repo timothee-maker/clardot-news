@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "./supabase";
+import type { Verification } from "./verify";
 
 export const PAGE_SIZE = 25;
 export const NO_SUBTYPE = "__none__";
@@ -110,6 +111,7 @@ export type Brief = {
   figures: string[];
   word_count: number;
   model: string;
+  verification: Verification | null;
 };
 
 // Brèves déjà générées, indexées par publication. Renvoie {} si la table n'existe pas encore.
@@ -117,7 +119,7 @@ export async function listBriefs(publicationIds: number[]): Promise<Record<numbe
   if (publicationIds.length === 0) return {};
   const { data, error } = await supabaseAdmin()
     .from("briefs")
-    .select("publication_id, title, body, figures, word_count, model")
+    .select("publication_id, title, body, figures, word_count, model, verification")
     .in("publication_id", publicationIds);
   if (error) return {};
   return Object.fromEntries((data as Brief[]).map((b) => [b.publication_id, b]));

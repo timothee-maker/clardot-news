@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { MIN_SCORE, score, select } from "@/lib/scoring";
+import type { Verification as BriefVerification } from "@/lib/verify";
 import {
   NO_SUBTYPE,
   PAGE_SIZE,
@@ -114,6 +115,7 @@ async function Publications({ searchParams }: { searchParams: SearchParams }) {
                       </>
                     )}
                   </p>
+                  <Verification v={briefs[r.id].verification} />
                 </article>
               )}
               <ul className="mt-2 flex flex-wrap gap-1.5">
@@ -291,5 +293,35 @@ async function Publications({ searchParams }: { searchParams: SearchParams }) {
         )}
       </nav>
     </main>
+  );
+}
+
+const ICON = { ok: "✅", warn: "⚠️", absent: "❌" } as const;
+
+function Verification({ v }: { v: BriefVerification | null }) {
+  if (!v)
+    return <p className="mt-2 text-xs text-zinc-500">Chiffres non vérifiés.</p>;
+  if (!v.checked) {
+    return (
+      <p className="mt-2 text-xs text-amber-700">
+        ⚠️ Non vérifiable : {v.reason}
+      </p>
+    );
+  }
+  return (
+    <details className="mt-2 text-xs">
+      <summary className="cursor-pointer">
+        Vérification des chiffres : ✅ {v.summary.ok} · ⚠️ {v.summary.warn} · ❌{" "}
+        {v.summary.absent}
+      </summary>
+      <ul className="mt-1 space-y-0.5">
+        {v.items.map((i, n) => (
+          <li key={n}>
+            {ICON[i.status]} <span className="font-medium">{i.text}</span>
+            {i.note && <span className="text-zinc-500"> : {i.note}</span>}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

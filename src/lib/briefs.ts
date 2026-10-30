@@ -3,6 +3,7 @@ import { generateBrief, MODEL, wordCount } from "./llm";
 import { listRecent } from "./publications";
 import { select } from "./scoring";
 import { supabaseAdmin } from "./supabase";
+import { verifyBrief, type Verification } from "./verify";
 
 const MIN_WORDS = 100;
 const MAX_WORDS = 150;
@@ -78,6 +79,7 @@ export async function generateTopBriefs(n: number, dryRun = false) {
         word_count: words,
         model: MODEL,
         source_chars: doc.text.length,
+        verification: verifyBrief(brief.body, doc.text),
       });
       if (error) throw new Error(error.message);
       results.push({ ...base, status: "created", words });
@@ -86,4 +88,35 @@ export async function generateTopBriefs(n: number, dryRun = false) {
     }
   }
   return results;
+}
+
+// Revérifie les brèves déjà stockées : on retélécharge le document, puis on compare à nouveau.
+export async function verifyStoredBriefs() {
+  const db = supabaseAdmin();
+  const { data, error } = await db
+    .from("briefs")
+    .select("id, body, publications(doc_url, company_name)");
+  if (error) throw new Error(error.message);
+
+  const out: { id: number; company: string; summary: string }[] = [];
+  for (const b of data as unknown as {
+    id: number;
+    body: string;
+    publications: { doc_url: string | null; company_name: string };
+  }[]) {
+    const doc = b.publications.doc_url ? await fetchDocumentText(b.publications.doc_url) : null;
+    const verification: Verification =
+      doc && doc.ok
+        ? verifyBrief(b.body, doc.text)
+        : { checked: false, reason: doc ? doc.reason : "Pas de document source" };
+    await db.from("briefs").update({ verification }).eq("id", b.id);
+    out.push({
+      id: b.id,
+      company: b.publications.company_name,
+      summary: verification.checked
+        ? `ok ${verification.summary.ok} / warn ${verification.summary.warn} / absent ${verification.summary.absent}`
+        : verification.reason,
+    });
+  }
+  return out;
 }
