@@ -88,3 +88,17 @@ function parisMidnight(d: string) {
   const hours = parseInt(tz.slice(3, 6)) || 0;
   return new Date(guess.getTime() - hours * 3_600_000).toISOString();
 }
+
+// Publications des 7 derniers jours, pour la sélection éditoriale (indépendante des filtres de la liste).
+export async function listRecent(days = 7) {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data, error } = await supabaseAdmin()
+    .from("publications")
+    .select(
+      "id, source_id, published_at, company_name, isin, title, info_type, info_subtype, language, doc_url, is_cac40",
+    )
+    .gte("published_at", since)
+    .limit(5000);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Publication[];
+}
