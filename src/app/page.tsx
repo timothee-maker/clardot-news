@@ -1,69 +1,161 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Suspense } from "react";
+import {
+  NO_SUBTYPE,
+  PAGE_SIZE,
+  listPublications,
+  listSubtypes,
+  parseFilters,
+  type Filters,
+} from "@/lib/publications";
 
-export default function Home() {
+const fmtDate = (iso: string) =>
+  new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(iso));
+
+function pageHref(f: Filters, page: number) {
+  const p = new URLSearchParams();
+  if (f.q) p.set("q", f.q);
+  if (f.type) p.set("type", f.type);
+  if (f.from) p.set("from", f.from);
+  if (f.to) p.set("to", f.to);
+  if (page > 1) p.set("page", String(page));
+  const qs = p.toString();
+  return qs ? `/?${qs}` : "/";
+}
+
+const input =
+  "rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+// Lire searchParams et la base se fait à la requête : on isole ça derrière Suspense (cacheComponents).
+export default function Home({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <Suspense fallback={<p className="mx-auto max-w-6xl px-4 py-8 text-zinc-500">Chargement…</p>}>
+      <Publications searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function Publications({ searchParams }: { searchParams: SearchParams }) {
+  const f = parseFilters(await searchParams);
+  const [{ rows, total }, subtypes] = await Promise.all([listPublications(f), listSubtypes()]);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  return (
+    <main className="mx-auto w-full max-w-6xl px-4 py-8">
+      <h1 className="text-2xl font-semibold">Publications réglementées</h1>
+      <p className="mt-1 text-sm text-zinc-500">
+        Source : info-financiere.gouv.fr (AMF) · {total} résultat{total > 1 ? "s" : ""}
+      </p>
+
+      <form className="mt-6 flex flex-wrap items-end gap-3" method="GET">
+        <label className="flex flex-col gap-1 text-sm">
+          Société
+          <input className={input} name="q" defaultValue={f.q} placeholder="ex. Eutelsat" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Type d&apos;information
+          <select className={`${input} max-w-xs`} name="type" defaultValue={f.type}>
+            <option value="">Tous</option>
+            {subtypes.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+            <option value={NO_SUBTYPE}>Non renseigné</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Du
+          <input className={input} type="date" name="from" defaultValue={f.from} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Au
+          <input className={input} type="date" name="to" defaultValue={f.to} />
+        </label>
+        <button className="rounded bg-zinc-900 px-4 py-1.5 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
+          Filtrer
+        </button>
+        <Link href="/" className="py-1.5 text-sm text-zinc-500 underline">
+          Réinitialiser
+        </Link>
+      </form>
+
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-zinc-300 text-zinc-500 dark:border-zinc-700">
+            <tr>
+              <th className="py-2 pr-4 font-medium">Date</th>
+              <th className="py-2 pr-4 font-medium">Société</th>
+              <th className="py-2 pr-4 font-medium">Titre</th>
+              <th className="py-2 pr-4 font-medium">Type</th>
+              <th className="py-2 font-medium">Doc</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className="border-b border-zinc-100 align-top dark:border-zinc-800">
+                <td className="whitespace-nowrap py-2 pr-4">{fmtDate(r.published_at)}</td>
+                <td className="py-2 pr-4">
+                  {r.company_name}
+                  {r.is_cac40 && (
+                    <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800">
+                      CAC 40
+                    </span>
+                  )}
+                  {r.isin && <div className="text-xs text-zinc-500">{r.isin}</div>}
+                </td>
+                <td className="py-2 pr-4">
+                  {r.title ?? <span className="text-zinc-400">(sans titre)</span>}
+                  {r.language && <span className="ml-2 text-xs text-zinc-400">{r.language}</span>}
+                </td>
+                <td className="py-2 pr-4 text-zinc-600 dark:text-zinc-400">
+                  {r.info_subtype ?? <span className="text-zinc-400">Non renseigné</span>}
+                </td>
+                <td className="py-2">
+                  {r.doc_url && (
+                    <a className="underline" href={r.doc_url} target="_blank" rel="noreferrer">
+                      PDF
+                    </a>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-zinc-500">
+                  Aucune publication ne correspond à ces filtres.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <nav className="mt-6 flex items-center gap-4 text-sm">
+        {f.page > 1 ? (
+          <Link className="underline" href={pageHref(f, f.page - 1)}>
+            ← Précédent
+          </Link>
+        ) : (
+          <span className="text-zinc-400">← Précédent</span>
+        )}
+        <span>
+          Page {f.page} / {pages}
+        </span>
+        {f.page < pages ? (
+          <Link className="underline" href={pageHref(f, f.page + 1)}>
+            Suivant →
+          </Link>
+        ) : (
+          <span className="text-zinc-400">Suivant →</span>
+        )}
+      </nav>
+    </main>
   );
 }
