@@ -69,9 +69,9 @@ Outil utilisé : Claude Code (dans VS Code).
 Avec plus de temps, dans l'ordre où je les ferais :
 
 1. **Déduplication.** Regrouper les articles français / anglais dès l'ingestion plutôt qu'à la sélection.
-2. **Acheter des crédits pour l'API LLM.** Gemini est parfois surchargé (503) : file d'attente avec relances, et repli sur un second modèle.
+2. **Fiabiliser l'appel au LLM.** Gemini est parfois surchargé (503) : file d'attente avec relances, et repli sur un second modèle.
 3. **Alertes.** Notifier quand une publication dépasse un seuil de score élevé (CAC 40, offre publique).
-4. **Évaluer sur un jeu annoté.** Faire comme sur Twitter : une vérification par la communauté, avec un sondage de validation de la fiabilité de l'article.
+4. **Validation par la communauté.** Faire comme sur Twitter : une vérification par la communauté, avec un sondage de validation de la fiabilité de l'article.
 
 ## 7. Temps passé
 - Début : 15:40. Fin de la rédaction du code et du déploiement : environ 18:40, avec une pause d'environ 15 min.
