@@ -41,7 +41,16 @@ Outil utilisé : Claude Code (dans VS Code).
 ### Prompts clés
 1. **Cadrage / plan.** J'ai collé l'énoncé complet de l'exercice et demandé un plan par étapes avec des temps cibles (cible 4 h). Résultat : le plan en 9 étapes (préparation, exploration, ingestion, liste, sélection, brèves, vérification, déploiement, README).
 2. **Gestion des risques.** Demander d'expliquer chaque étape pour la comprendre concrètement, et ne pas faire exécuter sans avoir pris conscience du risque pris.
-3. **Génération des brèves** : à compléter à l'étape 5 avec le prompt Gemini réel (100 à 150 mots, JSON structuré, interdiction d'inventer).
+3. **Génération des brèves** (prompt système envoyé à Gemini, dans `src/lib/llm.ts`) :
+   > Tu es journaliste financier. Tu rédiges une brève d'actualité en français à partir d'un document réglementé.
+   > - Utilise UNIQUEMENT les informations présentes dans le document fourni. N'invente rien, n'ajoute aucun contexte extérieur.
+   > - Corps de la brève : entre 100 et 150 mots, style factuel, sans adjectifs promotionnels.
+   > - Cite les chiffres clés exactement comme ils figurent dans le document (même valeur, même unité). Ne calcule pas de nouveau chiffre, n'arrondis pas.
+   > - Si le document ne contient pas de chiffre, n'en mets pas.
+   > - Dans "figures", liste chaque chiffre cité dans le corps, tel qu'écrit dans le corps.
+   > - Le titre est informatif, 12 mots maximum.
+
+   La sortie est un JSON imposé (`title`, `body`, `figures`) : la liste `figures` sert ensuite à vérifier les chiffres. Si le corps sort de la fourchette 100 à 150 mots, une seconde tentative est faite avec le décompte réel.
 
 ### Erreur de l'IA détectée
 - **Champ d'API inventé.** Pour trier les publications par date, l'IA a écrit `order_by=date_de_publication desc`, un nom de champ deviné à partir de l'énoncé et non lu dans les données.

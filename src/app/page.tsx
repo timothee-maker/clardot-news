@@ -5,6 +5,7 @@ import {
   NO_SUBTYPE,
   PAGE_SIZE,
   listPublications,
+  listBriefs,
   listRecent,
   listSubtypes,
   parseFilters,
@@ -55,6 +56,7 @@ async function Publications({ searchParams }: { searchParams: SearchParams }) {
     listRecent(),
   ]);
   const top = select(recent, 5);
+  const briefs = await listBriefs(top.map((t) => t.id));
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -90,6 +92,30 @@ async function Publications({ searchParams }: { searchParams: SearchParams }) {
                   {r.score}
                 </span>
               </div>
+              {briefs[r.id] && (
+                <article className="mt-3 rounded bg-zinc-50 p-3 dark:bg-zinc-900">
+                  <h3 className="font-semibold">{briefs[r.id].title}</h3>
+                  <p className="mt-1 whitespace-pre-line">
+                    {briefs[r.id].body}
+                  </p>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    {briefs[r.id].word_count} mots · {briefs[r.id].model}
+                    {r.doc_url && (
+                      <>
+                        {" · "}
+                        <a
+                          className="underline"
+                          href={r.doc_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Document source
+                        </a>
+                      </>
+                    )}
+                  </p>
+                </article>
+              )}
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {r.reasons.map((x) => (
                   <li

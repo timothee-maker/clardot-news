@@ -102,3 +102,23 @@ export async function listRecent(days = 7) {
   if (error) throw new Error(error.message);
   return (data ?? []) as Publication[];
 }
+
+export type Brief = {
+  publication_id: number;
+  title: string;
+  body: string;
+  figures: string[];
+  word_count: number;
+  model: string;
+};
+
+// Brèves déjà générées, indexées par publication. Renvoie {} si la table n'existe pas encore.
+export async function listBriefs(publicationIds: number[]): Promise<Record<number, Brief>> {
+  if (publicationIds.length === 0) return {};
+  const { data, error } = await supabaseAdmin()
+    .from("briefs")
+    .select("publication_id, title, body, figures, word_count, model")
+    .in("publication_id", publicationIds);
+  if (error) return {};
+  return Object.fromEntries((data as Brief[]).map((b) => [b.publication_id, b]));
+}
